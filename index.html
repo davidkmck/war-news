@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link rel="manifest" href="manifest.json">
+    
+    <link rel="icon" href="war-news.png">
+    <link rel="apple-touch-icon" href="war-news.png">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="WarNews">
+
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>War News Tracker</title>
+    <meta name="theme-color" content="#0a0a0c">
+    <style>
+        body {margin: 0; background: #0a0a0c; color: #e2e8f0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; display: flex; flex-direction: column; height: 100vh; }
+        /* Header */
+        header {padding: 20px; background: #111114; border-bottom: 1px solid #27272a; text-align: center; }
+        h1 { margin: 0; font-size: 1.5rem; letter-spacing: 2px; color: #ef4444; text-transform: uppercase; }
+        /* Tabs */
+        .tabs {display: flex; background: #111114; border-bottom: 1px solid #27272a; overflow-x: auto; }
+        .tab {flex: 1; padding: 15px; text-align: center; cursor: pointer; font-size: 0.85rem; font-weight: bold; color: #71717a; border-bottom: 2px solid transparent; white-space: nowrap; }
+        .tab.active {color: #ef4444; border-bottom: 2px solid #ef4444; background: rgba(239, 68, 68, 0.05); }
+        /* News List */
+        #news-container {flex: 1; overflow-y: auto; padding: 15px; }
+        .article {background: #18181b; padding: 15px; border-radius: 12px; margin-bottom: 12px; border: 1px solid #27272a; transition: 0.2s; }
+        .article:active { background: #27272a; }
+        .article-title {font-size: 1rem; font-weight: 600; line-height: 1.4; margin-bottom: 8px; display: block; text-decoration: none; color: #f8fafc; }
+        .article-meta {font-size: 0.75rem; color: #71717a; display: flex; justify-content: space-between; }
+        .loader {text-align: center; padding: 40px; color: #71717a; font-style: italic; }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>War News</h1>
+</header>
+
+<div class="tabs">
+    <div class="tab active" onclick="switchTab('Russia OR Ukraine war', this)">Russia-Ukraine</div>
+    <div class="tab" onclick="switchTab('Middle East OR Israel OR Gaza OR Lebanon OR Iran OR Yemen OR Houthis', this)">Middle East</div>
+</div>
+
+<div id="news-container">
+    <div class="loader">Select a tab to load headlines...</div>
+</div>
+
+<script>
+async function fetchNews(query) {
+    const container = document.getElementById('news-container');
+    container.innerHTML = '<div class="loader">Scanning global outlets...</div>';
+
+    // Google News RSS feed URL
+    const googleRssUrl = `https://news.google.com/rss/search?q=${encodeURIComponent(query)}&hl=en-US&gl=US&ceid=US:en`;
+    
+    // Convert RSS via rss2json
+    const apiUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(googleRssUrl)}`;
+
+    try {
+        const response = await fetch(apiUrl);
+        const data = await response.json();
+
+        if (data.status === 'ok' && data.items && data.items.length > 0) {
+            renderArticles(data.items);
+        } else {
+            container.innerHTML = '<div class="loader">No recent articles found. Try a different tab.</div>';
+        }
+    } catch (error) {
+        container.innerHTML = '<div class="loader">Connection failed. Check your internet connection.</div>';
+    }
+}
+
+function renderArticles(items) {
+    const container = document.getElementById('news-container');
+    container.innerHTML = '';
+    items.forEach(item => {
+        const div = document.createElement('div');
+        div.className = 'article';
+        
+        const time = item.pubDate 
+            ? new Date(item.pubDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+            : '';
+        
+        const sourceName = item.author || 'Google News';
+
+        div.innerHTML = `
+            <a href="${item.link}" target="_blank" rel="noopener noreferrer" class="article-title">${item.title}</a>
+            <div class="article-meta">
+                <span>${sourceName}</span>
+                <span>${time}</span>
+            </div>
+        `;
+        container.appendChild(div);
+    });
+}
+
+function switchTab(query, element) {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    element.classList.add('active');
+    fetchNews(query);
+}
+
+window.onload = () => {
+    fetchNews('Russia OR Ukraine war');
+};
+
+// Register service worker
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js')
+        .then(reg => console.log('Service Worker registered completely!', reg.scope))
+        .catch(err => console.log('Service worker registration failed:', err));
+    });
+}
+</script>
+</body>
+</html>
