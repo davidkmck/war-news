@@ -1,7 +1,7 @@
 {
-  "name": "War News Live",
-  "short_name": "WarNewsLive",
-  "start_url": "./?v=2",
+  "name": "War News",
+  "short_name": "WarNews",
+  "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#0a0a0c",
   "theme_color": "#0a0a0c",
