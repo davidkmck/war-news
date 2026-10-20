@@ -47,23 +47,33 @@
     <div class="loader">Select a tab to load headlines...</div>
 </div>
 
-<script>
+    <script>
 async function fetchNews(query) {
     const container = document.getElementById('news-container');
     container.innerHTML = '<div class="loader">Scanning global outlets...</div>';
 
-    // Google News RSS feed URL
     const googleRssUrl = `https://news.google.com/rss/search?q=${encodeURIComponent(query)}&hl=en-US&gl=US&ceid=US:en`;
     
-    // Convert RSS via rss2json
-    const apiUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(googleRssUrl)}`;
+    // Using AllOrigins CORS proxy to fetch the raw RSS XML string safely
+    const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(googleRssUrl)}`;
 
     try {
-        const response = await fetch(apiUrl);
-        const data = await response.json();
+        const response = await fetch(proxyUrl);
+        const xmlText = await response.text();
 
-        if (data.status === 'ok' && data.items && data.items.length > 0) {
-            renderArticles(data.items);
+        // Parse XML string natively in the browser
+        const parser = new DOMParser();
+        const xmlDoc = parser.parseFromString(xmlText, "text/xml");
+        const items = xmlDoc.querySelectorAll("item");
+
+        if (items && items.length > 0) {
+            const articles = Array.from(items).map(item => ({
+                title: item.querySelector("title")?.textContent || "No Title",
+                link: item.querySelector("link")?.textContent || "#",
+                pubDate: item.querySelector("pubDate")?.textContent || "",
+                author: item.querySelector("source")?.textContent || "Google News"
+            }));
+            renderArticles(articles);
         } else {
             container.innerHTML = '<div class="loader">No recent articles found. Try a different tab.</div>';
         }
@@ -83,12 +93,10 @@ function renderArticles(items) {
             ? new Date(item.pubDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
             : '';
         
-        const sourceName = item.author || 'Google News';
-
         div.innerHTML = `
             <a href="${item.link}" target="_blank" rel="noopener noreferrer" class="article-title">${item.title}</a>
             <div class="article-meta">
-                <span>${sourceName}</span>
+                <span>${item.author}</span>
                 <span>${time}</span>
             </div>
         `;
@@ -115,5 +123,6 @@ if ('serviceWorker' in navigator) {
     });
 }
 </script>
+    
 </body>
 </html>
