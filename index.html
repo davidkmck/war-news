@@ -54,9 +54,12 @@ async function fetchNews(query) {
 
     const googleRssUrl = `https://news.google.com/rss/search?q=${encodeURIComponent(query)}&hl=en-US&gl=US&ceid=US:en`;
     
-    // Using AllOrigins CORS proxy to fetch the raw RSS XML string safely
-    const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(googleRssUrl)}`;
+    // Replace this:
+// const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(googleRssUrl)}`;
 
+// With this CodeTabs proxy:
+const proxyUrl = `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(googleRssUrl)}`;
+    
     try {
         const response = await fetch(proxyUrl);
         const xmlText = await response.text();
